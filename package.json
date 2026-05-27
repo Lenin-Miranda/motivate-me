@@ -1,0 +1,12 @@
+{
+  "name": "motivate-me",
+  "private": true,
+  "workspaces": [
+    "web",
+    "api"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=web",
+    "dev:api": "npm run dev --workspace=api"
+  }
+}

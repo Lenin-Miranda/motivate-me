@@ -1,26 +1,89 @@
 @import "tailwindcss";
+@import "aos/dist/aos.css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --surface:        oklch(0.11 0.008 60);
+  --surface-raised: oklch(0.15 0.009 60);
+  --primary:        oklch(0.93 0.015 75);
+  --muted:          oklch(0.55 0.012 70);
+  --accent:         oklch(0.73 0.16 68);
+  --accent-hover:   oklch(0.67 0.16 68);
+  --border:         oklch(0.22 0.008 60);
+  --border-accent:  oklch(0.32 0.05 68);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface:        var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-primary:        var(--primary);
+  --color-muted:          var(--muted);
+  --color-accent:         var(--accent);
+  --color-accent-hover:   var(--accent-hover);
+  --color-border:         var(--border);
+  --color-border-accent:  var(--border-accent);
+  --font-sans:            var(--font-bricolage);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* --- Animations --- */
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes option-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.42s var(--ease-out) both;
+}
+
+/* Question text and staggered option buttons */
+.question-block .question-text {
+  animation: slide-up 0.35s var(--ease-out) both;
+}
+
+.question-block .option-item {
+  animation: option-enter 0.28s var(--ease-out) both;
+}
+
+.question-block .option-item:nth-child(1) { animation-delay: 45ms; }
+.question-block .option-item:nth-child(2) { animation-delay: 90ms; }
+.question-block .option-item:nth-child(3) { animation-delay: 135ms; }
+.question-block .option-item:nth-child(4) { animation-delay: 180ms; }
+.question-block .option-item:nth-child(5) { animation-delay: 225ms; }
+
+/* --- Transitions --- */
+
+/* Never use transition-all — specify only the properties that change */
+.btn-transition {
+  transition:
+    border-color  150ms ease-out,
+    background-color 150ms ease-out,
+    color         150ms ease-out,
+    transform     100ms ease-out;
+}
+
+.progress-segment {
+  transition: background-color 500ms ease-out, opacity 500ms ease-out;
+}
+
+/* --- Accessibility --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-up,
+  .question-block .question-text,
+  .question-block .option-item {
+    animation: none;
   }
+  [data-aos] { opacity: 1 !important; transform: none !important; }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface);
+  color: var(--primary);
 }

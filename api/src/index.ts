@@ -1,6 +1,7 @@
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
+import { logger } from "./middleware/logger";
 
 dotenv.config();
 
@@ -23,5 +24,5 @@ app.get("/health", (_req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`API running on http://localhost:${port}`);
+  logger.info(`API running on http://localhost:${port}`);
 });

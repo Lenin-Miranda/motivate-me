@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -15,25 +15,28 @@ enum UserRole {
 enum UserStatus {
   PENDING
   ACTIVE
-  LOCKERD
+  LOCKED
   DISABLED
 }
 
 model User {
-  id             String     @id @default(cuid())
-  email          String     @unique
-  passwordHash   String
-  role           UserRole   @default(USER)
-  status         UserStatus @default(PENDING)
-  emailVerfiedAt DateTime?
-  lastloginAt    DateTime?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id                String     @id @default(cuid())
+  email             String     @unique
+  passwordHash      String
+  role              UserRole   @default(USER)
+  status            UserStatus @default(PENDING)
+  emailVerifiedAt   DateTime?
+  passwordChangedAt DateTime?
+  lastLoginAt       DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
 
   sessions                Session[]
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
-  questionaires           QuestionnaireSubmission[]
+  questionnaires          QuestionnaireSubmission[]
+
+  @@index([status])
 }
 
 model Session {
@@ -43,8 +46,9 @@ model Session {
   refreshFamily String
   expiresAt     DateTime
   revokedAt     DateTime?
-  replaceById   String?
-  lasUsedAt     String?
+  replacedById  String?
+  lastUsedAt    DateTime?
+  ipAddress     String?
   userAgent     String?
   createdAt     DateTime  @default(now())
 
@@ -77,7 +81,7 @@ model PasswordResetToken {
   consumedAt DateTime?
   createdAt  DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
@@ -88,8 +92,11 @@ model QuestionnaireSubmission {
   mood      String
   focus     String
   style     String
+  userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User?    @relation(fields: [userId], references: [id])
-  userId    String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

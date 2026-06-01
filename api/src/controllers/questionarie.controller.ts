@@ -3,21 +3,20 @@ import { prisma } from "../lib/prisma";
 import { logger } from "../middleware/logger";
 import getStringField from "../helpers";
 
-export async function submitQuestionarie(res: Response, req: Request) {
+export async function submitQuestionarie(req: Request, res: Response) {
   try {
     const mood = getStringField(req.body.mood);
     const focus = getStringField(req.body.focus);
     const style = getStringField(req.body.style);
+    const userId = getStringField(req.body.userId);
 
-    if (!mood || !focus || !style) {
+    if (!mood || !focus || !style || !userId) {
       logger.error({
         status: 400,
-        message: "One or more required fields are missing",
+        message: "Mood, focus, style and userId are required",
       });
 
-      return res
-        .status(400)
-        .json({ message: "One or more required fields are missing" });
+      return res.status(400).json({ message: "Mood, focus, style and userId are required" });
     }
 
     const questionnaire = await prisma.questionnaireSubmission.create({
@@ -25,6 +24,9 @@ export async function submitQuestionarie(res: Response, req: Request) {
         mood,
         focus,
         style,
+        user: {
+          connect: { id: userId },
+        },
       },
     });
 
@@ -35,7 +37,7 @@ export async function submitQuestionarie(res: Response, req: Request) {
     return res.status(201).json(questionnaire);
   } catch (e) {
     logger.error({
-      stauts: 500,
+      status: 500,
       message: `Internal Server Error: ${e} `,
     });
 

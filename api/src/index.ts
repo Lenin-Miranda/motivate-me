@@ -1,10 +1,10 @@
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
-import { submitQuestionarie } from "./controllers/questionarie.controller";
 import { prisma } from "./lib/prisma";
 import { logger } from "./middleware/logger";
-import questionarieRouter from "./routes/questionarie";
+import authRouter from "./routes/auth.route";
+import questionarieRouter from "./routes/questionarie.route";
 
 dotenv.config();
 
@@ -38,6 +38,7 @@ app.get("/health", async (_req, res) => {
   }
 });
 
+app.use("/auth", authRouter);
 app.use("/questionarie", questionarieRouter);
 
 app.listen(port, () => {

@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "aos/dist/aos.css";
 
 :root {
   --surface:        oklch(0.11 0.008 60);
@@ -11,6 +10,9 @@
   --border:         oklch(0.22 0.008 60);
   --border-accent:  oklch(0.32 0.05 68);
 
+  /* ease-smooth: ease-out-quint — for reveals and page-load entrances */
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  /* ease-out: snappier — for interactive states (hover, press) */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
@@ -26,61 +28,90 @@
   --font-sans:            var(--font-bricolage);
 }
 
-/* --- Animations --- */
+/* --- Keyframes --- */
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(10px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(6px) scale(0.99); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes option-enter {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0);   }
 }
 
+/* --- Page-load entrance classes --- */
+
+/* Used for full sections and the done state */
 .animate-slide-up {
-  animation: slide-up 0.42s var(--ease-out) both;
+  will-change: transform, opacity;
+  animation: slide-up 0.6s var(--ease-smooth) both;
 }
 
-/* Question text and staggered option buttons */
+/* Used for elements that only need to fade (no translateY, avoids double-movement) */
+.animate-fade-in {
+  will-change: opacity;
+  animation: fade-in 0.5s var(--ease-smooth) both;
+}
+
+/* --- Question block: staggered children --- */
+
+/* Question text: leads the step reveal */
 .question-block .question-text {
-  animation: slide-up 0.35s var(--ease-out) both;
+  will-change: transform, opacity;
+  animation: slide-up 0.5s var(--ease-smooth) both;
+  animation-delay: 30ms;
 }
 
+/* Option buttons: cascade in after the question */
 .question-block .option-item {
-  animation: option-enter 0.28s var(--ease-out) both;
+  will-change: transform, opacity;
+  animation: option-enter 0.42s var(--ease-smooth) both;
 }
 
-.question-block .option-item:nth-child(1) { animation-delay: 45ms; }
-.question-block .option-item:nth-child(2) { animation-delay: 90ms; }
-.question-block .option-item:nth-child(3) { animation-delay: 135ms; }
-.question-block .option-item:nth-child(4) { animation-delay: 180ms; }
-.question-block .option-item:nth-child(5) { animation-delay: 225ms; }
+.question-block .option-item:nth-child(1) { animation-delay:  80ms; }
+.question-block .option-item:nth-child(2) { animation-delay: 130ms; }
+.question-block .option-item:nth-child(3) { animation-delay: 180ms; }
+.question-block .option-item:nth-child(4) { animation-delay: 230ms; }
+.question-block .option-item:nth-child(5) { animation-delay: 280ms; }
 
 /* --- Transitions --- */
 
-/* Never use transition-all — specify only the properties that change */
+/* Button / option hover + press — smooth curves, specific properties only */
 .btn-transition {
   transition:
-    border-color  150ms ease-out,
-    background-color 150ms ease-out,
-    color         150ms ease-out,
-    transform     100ms ease-out;
+    border-color     170ms var(--ease-smooth),
+    background-color 170ms var(--ease-smooth),
+    color            170ms var(--ease-smooth),
+    transform        110ms ease-out;
 }
 
+/* Progress bar fill — slow and satisfying */
 .progress-segment {
-  transition: background-color 500ms ease-out, opacity 500ms ease-out;
+  transition:
+    background-color 700ms var(--ease-smooth),
+    opacity          700ms var(--ease-smooth);
 }
 
 /* --- Accessibility --- */
 
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-up,
+  .animate-fade-in,
   .question-block .question-text,
   .question-block .option-item {
     animation: none;
+    will-change: auto;
   }
-  [data-aos] { opacity: 1 !important; transform: none !important; }
+  .btn-transition,
+  .progress-segment {
+    transition: none;
+  }
 }
 
 body {

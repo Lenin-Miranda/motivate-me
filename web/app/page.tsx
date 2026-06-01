@@ -1,6 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
-import AOS from "aos";
+import { useState } from "react";
 
 const steps = [
   {
@@ -37,14 +36,10 @@ const steps = [
 ];
 
 export default function Home() {
-  const [step, setStep] = useState(0);
+  const [step, setStep]       = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [done, setDone] = useState(false);
+  const [done, setDone]       = useState(false);
   const [animKey, setAnimKey] = useState(0);
-
-  useEffect(() => {
-    AOS.init({ duration: 380, easing: "ease-out-quart", once: true, offset: 20 });
-  }, []);
 
   function select(value: string) {
     const id = steps[step].id;
@@ -63,6 +58,7 @@ export default function Home() {
 
   return (
     <div className="min-h-dvh bg-surface text-primary font-sans">
+
       {/* Nav */}
       <nav className="fixed inset-x-0 top-0 z-50 flex items-center justify-between px-6 py-5 sm:px-12">
         <span className="text-sm font-bold tracking-tight text-accent">
@@ -87,8 +83,8 @@ export default function Home() {
       {/* Main content */}
       <main className="mx-auto flex min-h-dvh max-w-120 flex-col justify-center px-6 pb-20 pt-24 sm:px-10">
 
-        {/* Hero */}
-        <div data-aos="fade-up" className="mb-12">
+        {/* Hero — slides up on page load */}
+        <div className="animate-slide-up mb-12">
           <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">
             your support bro
           </p>
@@ -107,9 +103,12 @@ export default function Home() {
 
         {/* Questionnaire → CTA */}
         {!done ? (
-          <div data-aos="fade-up" data-aos-delay="100">
-            {/* Step progress */}
-            <div className="mb-7 flex gap-1.5">
+          <div>
+            {/* Progress bar — fades in after hero */}
+            <div
+              className="animate-fade-in mb-7 flex gap-1.5"
+              style={{ animationDelay: "200ms" }}
+            >
               {steps.map((s, i) => (
                 <div
                   key={s.id}
@@ -124,7 +123,7 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Question block — remounts each step to replay stagger animations */}
+            {/* Question block — remounts each step to replay stagger */}
             <div key={animKey} className="question-block">
               <p className="question-text mb-5 text-base font-semibold leading-snug text-primary">
                 {current.question}

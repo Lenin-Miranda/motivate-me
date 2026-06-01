@@ -1,10 +1,7 @@
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
-import {
-  createQuestionnaire,
-  listQuestionnaires,
-} from "./controllers/questionarie.controller";
+import { submitQuestionarie } from "./controllers/questionarie.controller";
 import { prisma } from "./lib/prisma";
 import { logger } from "./middleware/logger";
 
@@ -40,9 +37,11 @@ app.get("/health", async (_req, res) => {
   }
 });
 
-app.get("/questionnaires", listQuestionnaires);
-app.post("/questionnaires", createQuestionnaire);
+app.post("/questionnaires", submitQuestionarie);
 
 app.listen(port, () => {
-  logger.info(`API running on http://localhost:${port}`);
+  logger.info({
+    status: 200,
+    message: `API running on http://localhost:${port}`,
+  });
 });

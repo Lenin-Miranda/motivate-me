@@ -10,7 +10,7 @@ datasource db {
 model QuestionnaireSubmission {
   id        Int      @id @default(autoincrement())
   mood      String
-  area      String
+  focus     String
   style     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

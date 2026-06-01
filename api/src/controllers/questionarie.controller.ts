@@ -1,63 +1,45 @@
 import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { logger } from "../middleware/logger";
+import getStringField from "../helpers";
+import { get } from "node:http";
 
-function getStringField(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-export async function listQuestionnaires(_req: Request, res: Response) {
+export async function submitQuestionarie(res: Response, req: Request) {
   try {
-    const submissions = await prisma.questionnaireSubmission.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 20,
-    });
+    const mood = getStringField(req.body.mood);
+    const focus = getStringField(req.body.focus);
+    const style = getStringField(req.body.style);
 
-    res.json({
-      data: submissions,
-    });
-  } catch (error) {
-    logger.error("Failed to fetch questionnaire submissions", { error });
-    res.status(500).json({
-      error: "Could not fetch questionnaire submissions.",
-    });
-  }
-}
+    if (!mood || !focus || !style) {
+      logger.error({
+        status: 400,
+        message: "One or more required fields are missing",
+      });
 
-export async function createQuestionnaire(req: Request, res: Response) {
-  const mood = getStringField(req.body?.mood);
-  const area = getStringField(req.body?.area);
-  const style = getStringField(req.body?.style);
+      return res
+        .status(400)
+        .json({ message: "One or more required fields are missing" });
+    }
 
-  if (!mood || !area || !style) {
-    return res.status(400).json({
-      error: "Fields mood, area, and style are required.",
-    });
-  }
-
-  try {
-    const submission = await prisma.questionnaireSubmission.create({
+    const questionnaire = await prisma.questionnaireSubmission.create({
       data: {
         mood,
-        area,
+        focus,
         style,
       },
     });
 
-    return res.status(201).json({
-      data: submission,
+    logger.info({
+      status: 201,
+      message: "Questionarie submitted succesfully",
     });
-  } catch (error) {
-    logger.error("Failed to create questionnaire submission", { error });
-    return res.status(500).json({
-      error: "Could not save questionnaire submission.",
+    return res.status(201).json(questionnaire);
+  } catch (e) {
+    logger.error({
+      stauts: 500,
+      message: `Internal Server Error: ${e} `,
     });
+
+    return res.status(500).json({ error: "Internal server error" });
   }
 }

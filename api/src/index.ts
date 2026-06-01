@@ -4,6 +4,7 @@ import express from "express";
 import { submitQuestionarie } from "./controllers/questionarie.controller";
 import { prisma } from "./lib/prisma";
 import { logger } from "./middleware/logger";
+import questionarieRouter from "./routes/questionarie";
 
 dotenv.config();
 
@@ -37,7 +38,7 @@ app.get("/health", async (_req, res) => {
   }
 });
 
-app.post("/questionnaires", submitQuestionarie);
+app.use("/questionarie", questionarieRouter);
 
 app.listen(port, () => {
   logger.info({

@@ -2,7 +2,6 @@ import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { logger } from "../middleware/logger";
 import getStringField from "../helpers";
-import { get } from "node:http";
 
 export async function submitQuestionarie(res: Response, req: Request) {
   try {

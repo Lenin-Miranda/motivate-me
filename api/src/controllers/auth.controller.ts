@@ -1,4 +1,4 @@
-import { randomBytes, scrypt } from "node:crypto";
+import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import type { Request, Response } from "express";
 import getStringField from "../helpers";
 import { prisma } from "../lib/prisma";
@@ -6,6 +6,7 @@ import { logger } from "../middleware/logger";
 
 const PASSWORD_MIN_LENGTH = 12;
 const SCRYPT_KEY_LENGTH = 64;
+const SESSION_TTL_DAYS = 30;
 const SCRYPT_OPTIONS = {
   N: 16384,
   r: 8,
@@ -16,19 +17,36 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-async function hashPassword(password: string): Promise<string> {
-  const pepper = process.env.AUTH_PEPPER ?? "";
-  const salt = randomBytes(16).toString("hex");
-  const derivedKey = await new Promise<Buffer>((resolve, reject) => {
-    scrypt(password + pepper, salt, SCRYPT_KEY_LENGTH, SCRYPT_OPTIONS, (error, key) => {
-      if (error) {
-        reject(error);
-        return;
-      }
+type ScryptOptions = typeof SCRYPT_OPTIONS;
 
-      resolve(key);
-    });
+async function deriveScryptKey(
+  password: string,
+  salt: string,
+  options: ScryptOptions,
+): Promise<Buffer> {
+  const pepper = process.env.AUTH_PEPPER ?? "";
+
+  return new Promise<Buffer>((resolve, reject) => {
+    scrypt(
+      password + pepper,
+      salt,
+      SCRYPT_KEY_LENGTH,
+      options,
+      (error, key) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(key);
+      },
+    );
   });
+}
+
+async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16).toString("hex");
+  const derivedKey = await deriveScryptKey(password, salt, SCRYPT_OPTIONS);
 
   return [
     "scrypt",
@@ -38,6 +56,56 @@ async function hashPassword(password: string): Promise<string> {
     salt,
     derivedKey.toString("hex"),
   ].join("$");
+}
+
+async function verifyPassword(
+  password: string,
+  storedPasswordHash: string,
+): Promise<boolean> {
+  const [algorithm, n, r, p, salt, expectedHash] = storedPasswordHash.split("$");
+
+  if (!algorithm || !n || !r || !p || !salt || !expectedHash) {
+    return false;
+  }
+
+  if (algorithm !== "scrypt") {
+    return false;
+  }
+
+  const parsedOptions = {
+    N: Number(n),
+    r: Number(r),
+    p: Number(p),
+  };
+
+  if (
+    Number.isNaN(parsedOptions.N) ||
+    Number.isNaN(parsedOptions.r) ||
+    Number.isNaN(parsedOptions.p)
+  ) {
+    return false;
+  }
+
+  const derivedKey = await deriveScryptKey(password, salt, parsedOptions);
+  const expectedKey = Buffer.from(expectedHash, "hex");
+
+  if (expectedKey.length !== derivedKey.length) {
+    return false;
+  }
+
+  return timingSafeEqual(expectedKey, derivedKey);
+}
+
+function hashSessionToken(sessionToken: string): string {
+  return createHash("sha256").update(sessionToken).digest("hex");
+}
+
+function getSessionExpiry(): Date {
+  return new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
+}
+
+function canLogin(status: string): boolean {
+  return status === "ACTIVE" || status === "PENDING";
 }
 
 export async function registerUser(req: Request, res: Response) {
@@ -51,7 +119,9 @@ export async function registerUser(req: Request, res: Response) {
         message: "Email and password are required",
       });
 
-      return res.status(400).json({ message: "Email and password are required" });
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
     }
 
     if (!isValidEmail(email)) {
@@ -75,7 +145,9 @@ export async function registerUser(req: Request, res: Response) {
         message: "A user with that email already exists",
       });
 
-      return res.status(409).json({ message: "A user with that email already exists" });
+      return res
+        .status(409)
+        .json({ message: "A user with that email already exists" });
     }
 
     const passwordHash = await hashPassword(password);
@@ -107,6 +179,118 @@ export async function registerUser(req: Request, res: Response) {
     logger.error({
       status: 500,
       message: `Failed to register user: ${error instanceof Error ? error.message : "Unknown error"}`,
+    });
+
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export async function loginUser(req: Request, res: Response) {
+  try {
+    const email = getStringField(req.body.email)?.toLowerCase();
+    const password = getStringField(req.body.password);
+
+    if (!email || !password) {
+      logger.error({
+        status: 400,
+        message: "Email and password are required",
+      });
+
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        passwordHash: true,
+        role: true,
+        status: true,
+      },
+    });
+
+    if (!user) {
+      logger.error({
+        status: 401,
+        message: "Invalid credentials",
+      });
+
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const isPasswordValid = await verifyPassword(password, user.passwordHash);
+
+    if (!isPasswordValid) {
+      logger.error({
+        status: 401,
+        message: "Invalid credentials",
+      });
+
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    if (!canLogin(user.status)) {
+      logger.error({
+        status: 403,
+        message: "This account is not allowed to sign in",
+      });
+
+      return res.status(403).json({
+        message: "This account is not allowed to sign in",
+      });
+    }
+
+    const sessionToken = randomBytes(32).toString("hex");
+    const tokenHash = hashSessionToken(sessionToken);
+    const refreshFamily = randomBytes(16).toString("hex");
+    const expiresAt = getSessionExpiry();
+    const ipAddress = getStringField(req.ip);
+    const userAgent = getStringField(req.get("user-agent"));
+
+    const session = await prisma.session.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        refreshFamily,
+        expiresAt,
+        ipAddress,
+        userAgent,
+        lastUsedAt: new Date(),
+      },
+      select: {
+        id: true,
+        expiresAt: true,
+      },
+    });
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastLoginAt: new Date(),
+      },
+    });
+
+    logger.info({
+      status: 200,
+      message: "User logged in successfully",
+    });
+
+    return res.status(200).json({
+      message: "User logged in successfully",
+      sessionToken,
+      session,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+      },
+    });
+  } catch (error) {
+    logger.error({
+      status: 500,
+      message: `Failed to log in user: ${error instanceof Error ? error.message : "Unknown error"}`,
     });
 
     return res.status(500).json({ message: "Internal server error" });

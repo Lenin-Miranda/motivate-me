@@ -104,6 +104,65 @@ function getSessionExpiry(): Date {
   return new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
 }
 
+async function createSessionForUser(req: Request, userId: string) {
+  const sessionToken = randomBytes(32).toString("hex");
+  const tokenHash = hashSessionToken(sessionToken);
+  const refreshFamily = randomBytes(16).toString("hex");
+  const expiresAt = getSessionExpiry();
+  const ipAddress = getStringField(req.ip);
+  const userAgent = getStringField(req.get("user-agent"));
+
+  const session = await prisma.session.create({
+    data: {
+      userId,
+      tokenHash,
+      refreshFamily,
+      expiresAt,
+      ipAddress,
+      userAgent,
+      lastUsedAt: new Date(),
+    },
+    select: {
+      id: true,
+      expiresAt: true,
+    },
+  });
+
+  return {
+    session,
+    sessionToken,
+  };
+}
+
+async function claimAnonymousQuestionnaire(
+  questionnaireSubmissionId: string | null,
+  userId: string,
+) {
+  if (!questionnaireSubmissionId) {
+    return;
+  }
+
+  const updatedQuestionnaire = await prisma.questionnaireSubmission.updateMany({
+    where: {
+      id: questionnaireSubmissionId,
+      userId: null,
+    },
+    data: { userId },
+  });
+
+  if (updatedQuestionnaire.count === 0) {
+    return;
+  }
+
+  await prisma.motivationalPhrase.updateMany({
+    where: {
+      questionnaireSubmissionId,
+      userId: null,
+    },
+    data: { userId },
+  });
+}
+
 function canLogin(status: string): boolean {
   return status === "ACTIVE" || status === "PENDING";
 }
@@ -112,6 +171,9 @@ export async function registerUser(req: Request, res: Response) {
   try {
     const email = getStringField(req.body.email)?.toLowerCase();
     const password = getStringField(req.body.password);
+    const questionnaireSubmissionId = getStringField(
+      req.body.questionnaireSubmissionId,
+    );
 
     if (!email || !password) {
       logger.error({
@@ -166,13 +228,25 @@ export async function registerUser(req: Request, res: Response) {
       },
     });
 
+    await claimAnonymousQuestionnaire(questionnaireSubmissionId, user.id);
+    const { session, sessionToken } = await createSessionForUser(req, user.id);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastLoginAt: new Date(),
+      },
+    });
+
     logger.info({
       status: 201,
-      message: "User registered successfully",
+      message: "User registered and logged in successfully",
     });
 
     return res.status(201).json({
       message: "User registered successfully",
+      session,
+      sessionToken,
       user,
     });
   } catch (error) {
@@ -241,28 +315,7 @@ export async function loginUser(req: Request, res: Response) {
       });
     }
 
-    const sessionToken = randomBytes(32).toString("hex");
-    const tokenHash = hashSessionToken(sessionToken);
-    const refreshFamily = randomBytes(16).toString("hex");
-    const expiresAt = getSessionExpiry();
-    const ipAddress = getStringField(req.ip);
-    const userAgent = getStringField(req.get("user-agent"));
-
-    const session = await prisma.session.create({
-      data: {
-        userId: user.id,
-        tokenHash,
-        refreshFamily,
-        expiresAt,
-        ipAddress,
-        userAgent,
-        lastUsedAt: new Date(),
-      },
-      select: {
-        id: true,
-        expiresAt: true,
-      },
-    });
+    const { session, sessionToken } = await createSessionForUser(req, user.id);
 
     await prisma.user.update({
       where: { id: user.id },

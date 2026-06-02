@@ -28,24 +28,26 @@ export async function submitQuestionarie(req: Request, res: Response) {
     const style = getStringField(req.body.style);
     const userId = getStringField(req.body.userId);
 
-    if (!mood || !focus || !style || !userId) {
+    if (!mood || !focus || !style) {
       logger.error({
         status: 400,
-        message: "Mood, focus, style and userId are required",
+        message: "Mood, focus and style are required",
       });
 
       return res
         .status(400)
-        .json({ message: "Mood, focus, style and userId are required" });
+        .json({ message: "Mood, focus and style are required" });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true },
-    });
+    if (userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
     }
 
     const motivation = await generateMotivationalPhrases({
@@ -59,16 +61,24 @@ export async function submitQuestionarie(req: Request, res: Response) {
         mood,
         focus,
         style,
-        user: {
-          connect: { id: userId },
-        },
+        ...(userId
+          ? {
+              user: {
+                connect: { id: userId },
+              },
+            }
+          : {}),
         motivationalPhrases: {
           create: motivation.phrases.map((phrase) => ({
             text: phrase.text,
             tone: phrase.tone,
-            user: {
-              connect: { id: userId },
-            },
+            ...(userId
+              ? {
+                  user: {
+                    connect: { id: userId },
+                  },
+                }
+              : {}),
           })),
         },
       },
@@ -107,17 +117,20 @@ export async function getRandomMotivationalPhrases(req: Request, res: Response) 
     const userId = getStringField(req.query.userId);
     const take = Math.min(getNumberField(req.query.take, 3), 10);
 
-    if (!userId) {
-      return res.status(400).json({ message: "userId is required" });
-    }
-
-    const phrases = await prisma.$queryRaw<RandomPhrase[]>`
-      SELECT "id", "text", "tone", "createdAt"
-      FROM "MotivationalPhrase"
-      WHERE "userId" = ${userId}
-      ORDER BY RANDOM()
-      LIMIT ${take}
-    `;
+    const phrases = userId
+      ? await prisma.$queryRaw<RandomPhrase[]>`
+          SELECT "id", "text", "tone", "createdAt"
+          FROM "MotivationalPhrase"
+          WHERE "userId" = ${userId}
+          ORDER BY RANDOM()
+          LIMIT ${take}
+        `
+      : await prisma.$queryRaw<RandomPhrase[]>`
+          SELECT "id", "text", "tone", "createdAt"
+          FROM "MotivationalPhrase"
+          ORDER BY RANDOM()
+          LIMIT ${take}
+        `;
 
     return res.status(200).json({ phrases });
   } catch (e) {

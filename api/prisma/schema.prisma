@@ -100,11 +100,11 @@ model QuestionnaireSubmission {
   mood      String
   focus     String
   style     String
-  userId    String
+  userId    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user                 User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
   motivationalPhrases MotivationalPhrase[]
 
   @@index([userId, createdAt])
@@ -114,12 +114,12 @@ model MotivationalPhrase {
   id                        String   @id @default(cuid())
   text                      String
   tone                      PhraseTone
-  userId                    String
+  userId                    String?
   questionnaireSubmissionId String
   createdAt                 DateTime @default(now())
   usedAt                    DateTime?
 
-  user                    User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                    User?                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   questionnaireSubmission QuestionnaireSubmission @relation(fields: [questionnaireSubmissionId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])

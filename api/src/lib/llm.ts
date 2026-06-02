@@ -33,7 +33,10 @@ function getOpenAIClient(): OpenAI {
 function parseMotivationalPhrases(outputText: string): MotivationalPhrasesResponse {
   const parsed = JSON.parse(outputText) as MotivationalPhrasesResponse;
 
-  if (!Array.isArray(parsed.phrases) || parsed.phrases.length === 0) {
+  if (
+    !Array.isArray(parsed.phrases) ||
+    parsed.phrases.length !== PHRASES_PER_GENERATION
+  ) {
     throw new Error("LLM returned an invalid motivational phrases shape");
   }
 
@@ -80,8 +83,6 @@ export async function generateMotivationalPhrases(
           properties: {
             phrases: {
               type: "array",
-              minItems: PHRASES_PER_GENERATION,
-              maxItems: PHRASES_PER_GENERATION,
               items: {
                 type: "object",
                 additionalProperties: false,
@@ -89,7 +90,6 @@ export async function generateMotivationalPhrases(
                 properties: {
                   text: {
                     type: "string",
-                    minLength: 1,
                   },
                   tone: {
                     type: "string",

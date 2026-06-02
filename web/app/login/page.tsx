@@ -1,10 +1,36 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type { FormEvent } from "react";
 import { useState } from "react";
 import BrandLogo from "../components/BrandLogo";
+import { useAuth } from "../providers/AuthProvider";
 
 export default function Login() {
+  const router = useRouter();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function submitLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      await login({ email, password });
+      router.push("/");
+    } catch (loginError) {
+      setError(
+        loginError instanceof Error ? loginError.message : "Could not sign in",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="min-h-dvh bg-surface text-primary font-sans">
@@ -50,7 +76,7 @@ export default function Login() {
         <form
           className="animate-slide-up flex flex-col gap-5"
           style={{ animationDelay: "80ms" }}
-          onSubmit={(e) => e.preventDefault()}
+          onSubmit={submitLogin}
           noValidate
         >
           {/* Email */}
@@ -64,6 +90,8 @@ export default function Login() {
             <input
               id="email"
               type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               autoComplete="email"
               placeholder="you@example.com"
               className="w-full rounded-xl border border-border bg-transparent px-4 py-3.5 text-sm text-primary placeholder:text-muted transition-[border-color] duration-150 ease-out focus:border-border-accent focus:outline-none"
@@ -90,6 +118,8 @@ export default function Login() {
               <input
                 id="password"
                 type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
                 autoComplete="current-password"
                 placeholder="••••••••"
                 className="w-full rounded-xl border border-border bg-transparent px-4 py-3.5 pr-12 text-sm text-primary placeholder:text-muted transition-[border-color] duration-150 ease-out focus:border-border-accent focus:outline-none"
@@ -131,10 +161,14 @@ export default function Login() {
           {/* Submit */}
           <button
             type="submit"
-            className="btn-transition mt-1 w-full rounded-xl bg-accent py-4 text-sm font-bold text-surface hover:bg-accent-hover active:scale-[0.97]"
+            disabled={isSubmitting}
+            className="btn-transition mt-1 w-full rounded-xl bg-accent py-4 text-sm font-bold text-surface hover:bg-accent-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Sign in
+            {isSubmitting ? "Signing in..." : "Sign in"}
           </button>
+          {error ? (
+            <p className="text-sm font-medium text-accent">{error}</p>
+          ) : null}
         </form>
 
         {/* Register link */}

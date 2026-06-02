@@ -48,11 +48,13 @@ type QuestionnaireContextValue = {
   error: string | null;
   isComplete: boolean;
   isLoadingLatest: boolean;
+  isRetaking: boolean;
   isSigningUp: boolean;
   isSubmitting: boolean;
   latestAnswers: Array<{ label: string; value: string }>;
   latestQuestionnaire: LatestQuestionnaire;
   questionnaireSubmissionId: string | null;
+  resumeQuestionnaire: () => void;
   selectAnswer: (value: string) => void;
   showSignupPassword: boolean;
   signupComplete: boolean;
@@ -141,6 +143,7 @@ export function QuestionnaireProvider({ children }: { children: ReactNode }) {
   const [signupError, setSignupError] = useState<string | null>(null);
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
+  const [isRetaking, setIsRetaking] = useState(false);
   const [latestQuestionnaireState, setLatestQuestionnaireState] = useState<{
     userId: string;
     questionnaire: LatestQuestionnaire;
@@ -198,6 +201,7 @@ export function QuestionnaireProvider({ children }: { children: ReactNode }) {
 
       setQuestionnaireSubmissionId(response.questionnaire.id);
       setIsComplete(true);
+      setIsRetaking(false);
       setSignupComplete(Boolean(user));
     } catch (submitError) {
       setError(
@@ -227,6 +231,17 @@ export function QuestionnaireProvider({ children }: { children: ReactNode }) {
     setTimeout(() => {
       void submitQuestionnaire(nextAnswers);
     }, 360);
+  }
+
+  function resumeQuestionnaire() {
+    setAnswers({});
+    setCurrentStepIndex(0);
+    setAnimKey((key) => key + 1);
+    setError(null);
+    setIsComplete(false);
+    setIsRetaking(true);
+    setQuestionnaireSubmissionId(null);
+    setSignupComplete(Boolean(user));
   }
 
   async function submitSignup() {
@@ -273,11 +288,13 @@ export function QuestionnaireProvider({ children }: { children: ReactNode }) {
     error,
     isComplete,
     isLoadingLatest,
+    isRetaking,
     isSigningUp,
     isSubmitting,
     latestAnswers,
     latestQuestionnaire,
     questionnaireSubmissionId,
+    resumeQuestionnaire,
     selectAnswer,
     showSignupPassword,
     signupComplete,

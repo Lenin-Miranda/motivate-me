@@ -14,10 +14,12 @@ export default function QuestionnaireFlow() {
     error,
     isComplete,
     isLoadingLatest,
+    isRetaking,
     isSigningUp,
     isSubmitting,
     latestAnswers,
     latestQuestionnaire,
+    resumeQuestionnaire,
     selectAnswer,
     setShowSignupPassword,
     setSignupEmail,
@@ -44,7 +46,13 @@ export default function QuestionnaireFlow() {
     );
   }
 
-  if (user && !isComplete) {
+  if (
+    user &&
+    !isComplete &&
+    !isRetaking &&
+    currentStepIndex === 0 &&
+    Object.keys(answers).length === 0
+  ) {
     return (
       <div className="animate-slide-up">
         <p className="mb-3 text-2xl font-bold leading-tight text-primary">
@@ -54,7 +62,7 @@ export default function QuestionnaireFlow() {
           className="mb-8 text-[15px] leading-relaxed text-muted"
           style={{ maxWidth: "30ch" }}
         >
-          Your check-in is saved here, no need to take the questionnaire again.
+          Your latest check-in is saved here. Retake it anytime your day shifts.
         </p>
 
         {isLoadingLatest ? (
@@ -88,7 +96,16 @@ export default function QuestionnaireFlow() {
           </div>
         )}
 
-        <DownloadButton />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={resumeQuestionnaire}
+            className="btn-transition inline-flex items-center justify-center rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted hover:border-border-accent hover:text-primary active:scale-[0.97]"
+          >
+            Retake questionnaire
+          </button>
+          <DownloadButton />
+        </div>
       </div>
     );
   }

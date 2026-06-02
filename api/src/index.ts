@@ -15,6 +15,7 @@ const clientOrigin = process.env.CLIENT_ORIGIN ?? "http://localhost:3000";
 app.use(
   cors({
     origin: clientOrigin,
+    credentials: true,
   }),
 );
 app.use(express.json());

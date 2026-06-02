@@ -10,7 +10,6 @@ export type ApiUser = {
 
 export type AuthResponse = {
   message: string;
-  sessionToken: string;
   session: {
     id: string;
     expiresAt: string;
@@ -31,7 +30,13 @@ export type QuestionnaireAnswers = {
   mood: string;
   focus: string;
   style: string;
-  userId?: string;
+};
+
+export type MotivationalPhrase = {
+  id: string;
+  text: string;
+  tone: string;
+  createdAt: string;
 };
 
 export type QuestionnaireSubmitResponse = {
@@ -44,12 +49,18 @@ export type QuestionnaireSubmitResponse = {
     createdAt: string;
     updatedAt: string;
   };
-  phrases: Array<{
+  phrases: MotivationalPhrase[];
+};
+
+export type LatestQuestionnaireResponse = {
+  questionnaire: {
     id: string;
-    text: string;
-    tone: string;
+    mood: string;
+    focus: string;
+    style: string;
     createdAt: string;
-  }>;
+    motivationalPhrases: MotivationalPhrase[];
+  } | null;
 };
 
 async function apiRequest<T>(
@@ -58,6 +69,7 @@ async function apiRequest<T>(
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...init.headers,
@@ -87,6 +99,16 @@ export function registerRequest(input: RegisterInput): Promise<AuthResponse> {
   });
 }
 
+export function getCurrentUserRequest(): Promise<{ user: ApiUser }> {
+  return apiRequest<{ user: ApiUser }>("/auth/me");
+}
+
+export function logoutRequest(): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>("/auth/logout", {
+    method: "POST",
+  });
+}
+
 export function submitQuestionnaireRequest(
   input: QuestionnaireAnswers,
 ): Promise<QuestionnaireSubmitResponse> {
@@ -94,4 +116,8 @@ export function submitQuestionnaireRequest(
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export function getLatestQuestionnaireRequest(): Promise<LatestQuestionnaireResponse> {
+  return apiRequest<LatestQuestionnaireResponse>("/questionarie/me/latest");
 }

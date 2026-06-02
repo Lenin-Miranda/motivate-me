@@ -3,6 +3,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -11,87 +12,77 @@ import {
   type ApiUser,
   type AuthInput,
   type RegisterInput,
+  getCurrentUserRequest,
   loginRequest,
+  logoutRequest,
   registerRequest,
 } from "../lib/api";
 
 type AuthContextValue = {
   user: ApiUser | null;
-  sessionToken: string | null;
   isReady: boolean;
   login: (input: AuthInput) => Promise<ApiUser>;
   register: (input: RegisterInput) => Promise<ApiUser>;
-  logout: () => void;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const SESSION_STORAGE_KEY = "motivate-me:sessionToken";
-const USER_STORAGE_KEY = "motivate-me:user";
-
-function readStoredUser(): ApiUser | null {
-  const rawUser = window.localStorage.getItem(USER_STORAGE_KEY);
-
-  if (!rawUser) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(rawUser) as ApiUser;
-  } catch {
-    window.localStorage.removeItem(USER_STORAGE_KEY);
-    return null;
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<ApiUser | null>(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
+  const [user, setUser] = useState<ApiUser | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
-    return readStoredUser();
-  });
-  const [sessionToken, setSessionToken] = useState<string | null>(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-
-    return window.localStorage.getItem(SESSION_STORAGE_KEY);
-  });
-
-  function persistSession(nextUser: ApiUser, nextSessionToken: string) {
-    window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser));
-    window.localStorage.setItem(SESSION_STORAGE_KEY, nextSessionToken);
+  function persistSession(nextUser: ApiUser) {
     setUser(nextUser);
-    setSessionToken(nextSessionToken);
   }
 
-  function clearSession() {
-    window.localStorage.removeItem(USER_STORAGE_KEY);
-    window.localStorage.removeItem(SESSION_STORAGE_KEY);
+  async function clearSession() {
+    await logoutRequest();
     setUser(null);
-    setSessionToken(null);
   }
+
+  useEffect(() => {
+    let isMounted = true;
+
+    getCurrentUserRequest()
+      .then(({ user: currentUser }) => {
+        if (isMounted) {
+          setUser(currentUser);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setUser(null);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsReady(true);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
-      sessionToken,
-      isReady: true,
+      isReady,
       async login(input) {
         const response = await loginRequest(input);
-        persistSession(response.user, response.sessionToken);
+        persistSession(response.user);
         return response.user;
       },
       async register(input) {
         const response = await registerRequest(input);
-        persistSession(response.user, response.sessionToken);
+        persistSession(response.user);
         return response.user;
       },
       logout: clearSession,
     }),
-    [sessionToken, user],
+    [isReady, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

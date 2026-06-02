@@ -1,14 +1,19 @@
 "use client";
 import Link from "next/link";
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BrandLogo from "./components/BrandLogo";
-import { submitQuestionnaireRequest } from "./lib/api";
+import {
+  type LatestQuestionnaireResponse,
+  getLatestQuestionnaireRequest,
+  submitQuestionnaireRequest,
+} from "./lib/api";
 import { useAuth } from "./providers/AuthProvider";
 
 type StepId = "mood" | "focus" | "style";
 
 type QuestionnaireAnswers = Partial<Record<StepId, string>>;
+type LatestQuestionnaire = LatestQuestionnaireResponse["questionnaire"];
 
 const steps = [
   {
@@ -45,7 +50,7 @@ const steps = [
 ];
 
 export default function Home() {
-  const { register, user } = useAuth();
+  const { isReady, logout, register, user } = useAuth();
   const [step, setStep]       = useState(0);
   const [answers, setAnswers] = useState<QuestionnaireAnswers>({});
   const [done, setDone]       = useState(false);
@@ -61,6 +66,40 @@ export default function Home() {
   const [signupError, setSignupError] = useState<string | null>(null);
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
+  const [latestQuestionnaireState, setLatestQuestionnaireState] = useState<{
+    userId: string;
+    questionnaire: LatestQuestionnaire;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!isReady || !user) {
+      return;
+    }
+
+    let isMounted = true;
+
+    getLatestQuestionnaireRequest()
+      .then(({ questionnaire }) => {
+        if (isMounted) {
+          setLatestQuestionnaireState({
+            userId: user.id,
+            questionnaire,
+          });
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setLatestQuestionnaireState({
+            userId: user.id,
+            questionnaire: null,
+          });
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isReady, user]);
 
   async function submitQuestionnaire(nextAnswers: QuestionnaireAnswers) {
     setError(null);
@@ -75,7 +114,6 @@ export default function Home() {
         mood: nextAnswers.mood,
         focus: nextAnswers.focus,
         style: nextAnswers.style,
-        ...(user ? { userId: user.id } : {}),
       });
 
       setQuestionnaireSubmissionId(response.questionnaire.id);
@@ -134,6 +172,19 @@ export default function Home() {
   }
 
   const current = steps[step];
+  const latestQuestionnaire =
+    user && latestQuestionnaireState?.userId === user.id
+      ? latestQuestionnaireState.questionnaire
+      : null;
+  const isLoadingLatest =
+    Boolean(user) && latestQuestionnaireState?.userId !== user?.id;
+  const latestAnswers = latestQuestionnaire
+    ? [
+        { label: steps[0].question, value: latestQuestionnaire.mood },
+        { label: steps[1].question, value: latestQuestionnaire.focus },
+        { label: steps[2].question, value: latestQuestionnaire.style },
+      ]
+    : [];
 
   return (
     <div className="min-h-dvh bg-surface text-primary font-sans">
@@ -143,12 +194,22 @@ export default function Home() {
         <Link href="/" aria-label="Motivate Me home" className="btn-transition rounded-sm">
           <BrandLogo />
         </Link>
-        <Link
-          href="/login"
-          className="text-sm font-medium text-muted transition-colors duration-150 hover:text-primary"
-        >
-          sign in
-        </Link>
+        {user ? (
+          <button
+            type="button"
+            onClick={() => void logout()}
+            className="text-sm font-medium text-muted transition-colors duration-150 hover:text-primary"
+          >
+            sign out
+          </button>
+        ) : (
+          <Link
+            href="/login"
+            className="text-sm font-medium text-muted transition-colors duration-150 hover:text-primary"
+          >
+            sign in
+          </Link>
+        )}
       </nav>
 
       {/* Ambient background glow */}
@@ -180,8 +241,70 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Questionnaire → CTA */}
-        {!done ? (
+        {!isReady ? (
+          <p className="animate-fade-in text-sm font-medium text-muted">
+            Checking your session...
+          </p>
+        ) : user && !done ? (
+          <div className="animate-slide-up">
+            <p className="mb-3 text-2xl font-bold leading-tight text-primary">
+              You&apos;re signed in.
+            </p>
+            <p
+              className="mb-8 text-[15px] leading-relaxed text-muted"
+              style={{ maxWidth: "30ch" }}
+            >
+              Your check-in is saved here, no need to take the questionnaire again.
+            </p>
+
+            {isLoadingLatest ? (
+              <p className="text-sm font-medium text-accent">
+                Loading your latest check-in...
+              </p>
+            ) : latestQuestionnaire ? (
+              <div className="mb-8 flex flex-col gap-3">
+                {latestAnswers.map((answer) => (
+                  <div
+                    key={answer.label}
+                    className="rounded-xl border border-border bg-surface-raised px-4 py-3.5"
+                  >
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+                      {answer.label}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold leading-relaxed text-primary">
+                      {answer.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mb-8 rounded-xl border border-border bg-surface-raised px-4 py-3.5">
+                <p className="text-sm font-semibold text-primary">
+                  No saved check-in yet.
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-muted">
+                  The app will keep your mood, focus, and support style together once you create one.
+                </p>
+              </div>
+            )}
+
+            <a
+              href="#download"
+              className="btn-transition inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-7 py-4 text-sm font-bold text-surface hover:bg-accent-hover active:scale-[0.97]"
+            >
+              Download the app
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
+                <path
+                  d="M6.5 1.5v8M3 7l3.5 3.5L10 7"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </a>
+          </div>
+        ) : !done ? (
           <div>
             {/* Progress bar — fades in after hero */}
             <div

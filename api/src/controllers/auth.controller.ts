@@ -1,12 +1,19 @@
-import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
+import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import type { Request, Response } from "express";
 import getStringField from "../helpers";
 import { prisma } from "../lib/prisma";
+import {
+  clearSessionCookie,
+  getAuthenticatedUser,
+  getSessionExpiry,
+  getSessionTokenFromRequest,
+  hashSessionToken,
+  setSessionCookie,
+} from "../lib/session";
 import { logger } from "../middleware/logger";
 
 const PASSWORD_MIN_LENGTH = 12;
 const SCRYPT_KEY_LENGTH = 64;
-const SESSION_TTL_DAYS = 30;
 const SCRYPT_OPTIONS = {
   N: 16384,
   r: 8,
@@ -94,14 +101,6 @@ async function verifyPassword(
   }
 
   return timingSafeEqual(expectedKey, derivedKey);
-}
-
-function hashSessionToken(sessionToken: string): string {
-  return createHash("sha256").update(sessionToken).digest("hex");
-}
-
-function getSessionExpiry(): Date {
-  return new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
 }
 
 async function createSessionForUser(req: Request, userId: string) {
@@ -230,6 +229,7 @@ export async function registerUser(req: Request, res: Response) {
 
     await claimAnonymousQuestionnaire(questionnaireSubmissionId, user.id);
     const { session, sessionToken } = await createSessionForUser(req, user.id);
+    setSessionCookie(res, sessionToken);
 
     await prisma.user.update({
       where: { id: user.id },
@@ -246,7 +246,6 @@ export async function registerUser(req: Request, res: Response) {
     return res.status(201).json({
       message: "User registered successfully",
       session,
-      sessionToken,
       user,
     });
   } catch (error) {
@@ -316,6 +315,7 @@ export async function loginUser(req: Request, res: Response) {
     }
 
     const { session, sessionToken } = await createSessionForUser(req, user.id);
+    setSessionCookie(res, sessionToken);
 
     await prisma.user.update({
       where: { id: user.id },
@@ -331,7 +331,6 @@ export async function loginUser(req: Request, res: Response) {
 
     return res.status(200).json({
       message: "User logged in successfully",
-      sessionToken,
       session,
       user: {
         id: user.id,
@@ -344,6 +343,54 @@ export async function loginUser(req: Request, res: Response) {
     logger.error({
       status: 500,
       message: `Failed to log in user: ${error instanceof Error ? error.message : "Unknown error"}`,
+    });
+
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export async function getCurrentUser(req: Request, res: Response) {
+  try {
+    const user = await getAuthenticatedUser(req);
+
+    if (!user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    return res.status(200).json({ user });
+  } catch (error) {
+    logger.error({
+      status: 500,
+      message: `Failed to get current user: ${error instanceof Error ? error.message : "Unknown error"}`,
+    });
+
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export async function logoutUser(req: Request, res: Response) {
+  try {
+    const sessionToken = getSessionTokenFromRequest(req);
+
+    if (sessionToken) {
+      await prisma.session.updateMany({
+        where: {
+          tokenHash: hashSessionToken(sessionToken),
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      });
+    }
+
+    clearSessionCookie(res);
+
+    return res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    logger.error({
+      status: 500,
+      message: `Failed to log out user: ${error instanceof Error ? error.message : "Unknown error"}`,
     });
 
     return res.status(500).json({ message: "Internal server error" });

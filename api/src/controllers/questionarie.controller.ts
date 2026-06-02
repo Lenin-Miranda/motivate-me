@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { generateMotivationalPhrases } from "../lib/llm";
 import { prisma } from "../lib/prisma";
+import { getAuthenticatedUser } from "../lib/session";
 import { logger } from "../middleware/logger";
 import getStringField from "../helpers";
 
@@ -26,7 +27,8 @@ export async function submitQuestionarie(req: Request, res: Response) {
     const mood = getStringField(req.body.mood);
     const focus = getStringField(req.body.focus);
     const style = getStringField(req.body.style);
-    const userId = getStringField(req.body.userId);
+    const user = await getAuthenticatedUser(req);
+    const userId = user?.id;
 
     if (!mood || !focus || !style) {
       logger.error({
@@ -37,17 +39,6 @@ export async function submitQuestionarie(req: Request, res: Response) {
       return res
         .status(400)
         .json({ message: "Mood, focus and style are required" });
-    }
-
-    if (userId) {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true },
-      });
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
     }
 
     const motivation = await generateMotivationalPhrases({
@@ -114,7 +105,8 @@ export async function submitQuestionarie(req: Request, res: Response) {
 
 export async function getRandomMotivationalPhrases(req: Request, res: Response) {
   try {
-    const userId = getStringField(req.query.userId);
+    const user = await getAuthenticatedUser(req);
+    const userId = user?.id;
     const take = Math.min(getNumberField(req.query.take, 3), 10);
 
     const phrases = userId
@@ -137,6 +129,47 @@ export async function getRandomMotivationalPhrases(req: Request, res: Response) 
     logger.error({
       status: 500,
       message: `Failed to fetch random motivational phrases: ${e}`,
+    });
+
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function getLatestQuestionarie(req: Request, res: Response) {
+  try {
+    const user = await getAuthenticatedUser(req);
+
+    if (!user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const questionnaire = await prisma.questionnaireSubmission.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        mood: true,
+        focus: true,
+        style: true,
+        createdAt: true,
+        motivationalPhrases: {
+          take: 3,
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            text: true,
+            tone: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    return res.status(200).json({ questionnaire });
+  } catch (e) {
+    logger.error({
+      status: 500,
+      message: `Failed to fetch latest questionnaire: ${e}`,
     });
 
     return res.status(500).json({ error: "Internal server error" });

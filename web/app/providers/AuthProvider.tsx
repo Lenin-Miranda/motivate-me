@@ -44,22 +44,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
-    getCurrentUserRequest()
-      .then(({ user: currentUser }) => {
+    async function hydrateUser() {
+      try {
+        const { user: currentUser } = await getCurrentUserRequest();
+
         if (isMounted) {
           setUser(currentUser);
         }
-      })
-      .catch(() => {
+      } catch {
         if (isMounted) {
           setUser(null);
         }
-      })
-      .finally(() => {
+      } finally {
         if (isMounted) {
           setIsReady(true);
         }
-      });
+      }
+    }
+
+    void hydrateUser();
 
     return () => {
       isMounted = false;

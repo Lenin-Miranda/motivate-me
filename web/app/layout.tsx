@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque } from "next/font/google";
 import { AuthProvider } from "./providers/AuthProvider";
+import { QuestionnaireProvider } from "./providers/QuestionnaireProvider";
 import "./globals.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -39,7 +40,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${bricolage.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <QuestionnaireProvider>{children}</QuestionnaireProvider>
+        </AuthProvider>
       </body>
     </html>
   );

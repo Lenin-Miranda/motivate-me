@@ -1,6 +1,14 @@
 "use client";
 
 import {
+  BatteryWarning,
+  CloudFog,
+  Frown,
+  Meh,
+  Smile,
+  type LucideIcon,
+} from "lucide-react";
+import {
   createContext,
   useContext,
   useEffect,
@@ -18,10 +26,16 @@ export type StepId = "mood" | "focus" | "style";
 
 export type QuestionnaireAnswers = Partial<Record<StepId, string>>;
 
+export type QuestionnaireOption = {
+  label: string;
+  value: string;
+  Icon?: LucideIcon;
+};
+
 export type QuestionnaireStep = {
   id: StepId;
   question: string;
-  options: string[];
+  options: QuestionnaireOption[];
 };
 
 type LatestQuestionnaire = LatestQuestionnaireResponse["questionnaire"];
@@ -61,31 +75,51 @@ const steps: QuestionnaireStep[] = [
     id: "mood",
     question: "Real talk, how are you doing right now?",
     options: [
-      "😴 Running on empty",
-      "😤 Frustrated",
-      "😰 Anxious about something",
-      "😶 Just... numb",
-      "🙂 Hanging in there",
+      {
+        label: "Running on empty",
+        value: "Running on empty",
+        Icon: BatteryWarning,
+      },
+      {
+        label: "Frustrated",
+        value: "Frustrated",
+        Icon: Frown,
+      },
+      {
+        label: "Anxious about something",
+        value: "Anxious about something",
+        Icon: CloudFog,
+      },
+      {
+        label: "Just... numb",
+        value: "Just... numb",
+        Icon: Meh,
+      },
+      {
+        label: "Hanging in there",
+        value: "Hanging in there",
+        Icon: Smile,
+      },
     ],
   },
   {
     id: "focus",
     question: "What do you need a push with?",
     options: [
-      "Work or career",
-      "Starting something new",
-      "My mental space",
-      "Life in general",
+      { label: "Work or career", value: "Work or career" },
+      { label: "Starting something new", value: "Starting something new" },
+      { label: "My mental space", value: "My mental space" },
+      { label: "Life in general", value: "Life in general" },
     ],
   },
   {
     id: "style",
     question: "How do you like your support?",
     options: [
-      "Gentle and soft",
-      "Straight, no chaser",
-      "Deep and meaningful",
-      "Make me smile",
+      { label: "Gentle and soft", value: "Gentle and soft" },
+      { label: "Straight, no chaser", value: "Straight, no chaser" },
+      { label: "Deep and meaningful", value: "Deep and meaningful" },
+      { label: "Make me smile", value: "Make me smile" },
     ],
   },
 ];

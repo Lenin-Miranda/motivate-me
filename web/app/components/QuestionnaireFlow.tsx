@@ -120,20 +120,32 @@ export default function QuestionnaireFlow() {
           </p>
           <div className="flex flex-col gap-2">
             {currentStep.options.map((option) => {
-              const selected = answers[currentStep.id] === option;
+              const selected = answers[currentStep.id] === option.value;
+              const Icon = option.Icon;
 
               return (
                 <button
-                  key={option}
+                  key={option.value}
                   disabled={isSubmitting}
-                  onClick={() => selectAnswer(option)}
+                  onClick={() => selectAnswer(option.value)}
                   className={`option-item btn-transition group flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3.5 text-left text-sm font-medium active:scale-[0.985] ${
                     selected
                       ? "border-border-accent bg-surface-raised text-primary"
                       : "border-border bg-transparent text-muted hover:border-border-accent hover:bg-surface-raised hover:text-primary"
                   }`}
                 >
-                  <span>{option}</span>
+                  <span className="flex min-w-0 items-center gap-3">
+                    {Icon ? (
+                      <Icon
+                        aria-hidden
+                        className={`h-4 w-4 shrink-0 transition-colors duration-150 ${
+                          selected ? "text-accent" : "text-muted group-hover:text-accent"
+                        }`}
+                        strokeWidth={1.9}
+                      />
+                    ) : null}
+                    <span>{option.label}</span>
+                  </span>
                   <span
                     className={`h-3.5 w-3.5 shrink-0 rounded-full border-2 transition-[border-color,background-color] duration-150 ease-out ${
                       selected

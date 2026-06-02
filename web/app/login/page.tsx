@@ -1,5 +1,7 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
+import BrandLogo from "../components/BrandLogo";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -8,15 +10,15 @@ export default function Login() {
     <div className="min-h-dvh bg-surface text-primary font-sans">
       {/* Nav */}
       <nav className="fixed inset-x-0 top-0 z-50 flex items-center justify-between px-6 py-5 sm:px-12">
-        <span className="text-sm font-bold tracking-tight text-accent">
-          motivate me.
-        </span>
-        <a
+        <Link href="/" aria-label="Motivate Me home" className="btn-transition rounded-sm">
+          <BrandLogo />
+        </Link>
+        <Link
           href="/"
           className="text-sm font-medium text-muted transition-colors duration-150 hover:text-primary"
         >
           back
-        </a>
+        </Link>
       </nav>
 
       {/* Ambient glow — same as landing */}
@@ -35,7 +37,7 @@ export default function Login() {
             className="mb-3 font-extrabold leading-[0.92] tracking-tight text-primary"
             style={{ fontSize: "clamp(2.5rem, 9vw, 4rem)" }}
           >
-            Hey, you're
+            Hey, you&apos;re
             <br />
             <em className="not-italic text-accent">back.</em>
           </h1>
@@ -141,12 +143,12 @@ export default function Login() {
           style={{ animationDelay: "160ms" }}
         >
           First time here?{" "}
-          <a
+          <Link
             href="/"
             className="font-semibold text-accent transition-colors duration-150 hover:text-primary"
           >
             Take the questionnaire.
-          </a>
+          </Link>
         </p>
       </main>
     </div>

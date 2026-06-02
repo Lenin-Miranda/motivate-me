@@ -1,5 +1,7 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
+import BrandLogo from "./components/BrandLogo";
 
 const steps = [
   {
@@ -61,15 +63,15 @@ export default function Home() {
 
       {/* Nav */}
       <nav className="fixed inset-x-0 top-0 z-50 flex items-center justify-between px-6 py-5 sm:px-12">
-        <span className="text-sm font-bold tracking-tight text-accent">
-          motivate me.
-        </span>
-        <a
+        <Link href="/" aria-label="Motivate Me home" className="btn-transition rounded-sm">
+          <BrandLogo />
+        </Link>
+        <Link
           href="/login"
           className="text-sm font-medium text-muted transition-colors duration-150 hover:text-primary"
         >
           sign in
-        </a>
+        </Link>
       </nav>
 
       {/* Ambient background glow */}
@@ -183,12 +185,12 @@ export default function Home() {
                   />
                 </svg>
               </a>
-              <a
+              <Link
                 href="/login"
                 className="btn-transition inline-flex items-center justify-center rounded-xl border border-border px-7 py-4 text-sm font-medium text-muted hover:border-border-accent hover:text-primary active:scale-[0.97]"
               >
                 sign in
-              </a>
+              </Link>
             </div>
           </div>
         )}

@@ -1,0 +1,14 @@
+{
+  "name": "desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "lint": "node --check main.js && node --check preload.js && node --check renderer/renderer.js"
+  },
+  "dependencies": {
+    "electron": "^37.0.0"
+  }
+}

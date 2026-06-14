@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Motivate Me Desktop Pet</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="pet-stage">
+      <section class="phrase-bubble hidden" id="phrase-bubble" aria-live="polite">
+        <div class="bubble-header">
+          <p class="bubble-kicker">support bro says</p>
+          <button type="button" class="bubble-close" id="close-bubble" aria-label="Close">
+            x
+          </button>
+        </div>
+        <p class="bubble-text" id="phrase-text">Need a little push?</p>
+        <div class="bubble-footer">
+          <span class="tone-pill" id="phrase-tone">warm</span>
+          <button type="button" class="bubble-refresh" id="refresh-phrase">
+            another one
+          </button>
+        </div>
+      </section>
+
+      <div class="pet-wrap" id="pet-wrap">
+        <button type="button" class="pet-shell" id="pet-button" aria-label="Show motivation">
+          <span class="pet-shadow" aria-hidden="true"></span>
+          <span class="pet-body" aria-hidden="true">
+            <span class="pet-blush pet-blush-left"></span>
+            <span class="pet-blush pet-blush-right"></span>
+            <span class="pet-eye pet-eye-left"></span>
+            <span class="pet-eye pet-eye-right"></span>
+            <span class="pet-mouth"></span>
+            <span class="pet-arm pet-arm-left"></span>
+            <span class="pet-arm pet-arm-right"></span>
+            <span class="pet-foot pet-foot-left"></span>
+            <span class="pet-foot pet-foot-right"></span>
+          </span>
+        </button>
+        <div class="ground-line" aria-hidden="true"></div>
+      </div>
+    </main>
+
+    <script src="./renderer.js"></script>
+  </body>
+  </html>

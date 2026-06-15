@@ -3,6 +3,7 @@ const { app, BrowserWindow, Menu, Tray, ipcMain, screen } = require("electron");
 
 const PET_WIDTH = 220;
 const PET_HEIGHT = 260;
+const BUBBLE_EXTRA_HEIGHT = 148;
 const FLOOR_MARGIN = 18;
 const SIDE_MARGIN = 18;
 const WALK_SPEED = 2;
@@ -239,6 +240,17 @@ ipcMain.handle("desktop-pet:fetch-phrase", async () => {
 ipcMain.on("desktop-pet:set-bubble-paused", (_event, paused) => {
   state.bubblePaused = Boolean(paused);
   syncPauseState();
+});
+
+ipcMain.on("desktop-pet:set-bubble-open", (_event, isOpen) => {
+  if (!mainWindow) return;
+  const workArea = getWorkArea();
+  if (isOpen) {
+    const newY = Math.max(workArea.y, state.y - BUBBLE_EXTRA_HEIGHT);
+    mainWindow.setBounds({ x: Math.round(state.x), y: newY, width: PET_WIDTH, height: PET_HEIGHT + BUBBLE_EXTRA_HEIGHT });
+  } else {
+    mainWindow.setBounds({ x: Math.round(state.x), y: Math.round(state.y), width: PET_WIDTH, height: PET_HEIGHT });
+  }
 });
 
 ipcMain.on("desktop-pet:quit", () => {

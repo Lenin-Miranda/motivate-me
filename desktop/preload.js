@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld("desktopPet", {
   fetchPhrase: () => ipcRenderer.invoke("desktop-pet:fetch-phrase"),
   setBubblePaused: (paused) =>
     ipcRenderer.send("desktop-pet:set-bubble-paused", paused),
+  setBubbleOpen: (open) =>
+    ipcRenderer.send("desktop-pet:set-bubble-open", open),
   quit: () => ipcRenderer.send("desktop-pet:quit"),
   onDirectionChange: (callback) => {
     ipcRenderer.on("desktop-pet:direction", (_event, direction) => {

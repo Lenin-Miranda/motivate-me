@@ -49,6 +49,7 @@ function setBubbleOpen(open) {
   isBubbleOpen = open;
   bubble.classList.toggle("hidden", !open);
   window.desktopPet.setBubblePaused(open);
+  window.desktopPet.setBubbleOpen(open);
 }
 
 async function openBubble() {

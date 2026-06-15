@@ -54,6 +54,14 @@ function setBubbleOpen(open) {
 async function openBubble() {
   clearTimers();
   setBubbleOpen(true);
+
+  petButton.classList.remove("is-excited");
+  void petButton.offsetWidth;
+  petButton.classList.add("is-excited");
+  setTimeout(() => {
+    petButton.classList.remove("is-excited");
+  }, 750);
+
   phraseText.textContent = "Picking the next little push...";
   phraseTone.textContent = "loading";
 

@@ -16,13 +16,59 @@
           <p class="bubble-kicker">support bro says</p>
           <button type="button" class="bubble-close" id="close-bubble" aria-label="Close">&#x2715;</button>
         </div>
-        <p class="bubble-text" id="phrase-text">Need a little push?</p>
-        <div class="bubble-footer">
-          <span class="tone-pill" id="phrase-tone">warm</span>
-          <button type="button" class="bubble-refresh" id="refresh-phrase">
-            another one
-          </button>
+
+        <div class="phrase-view" id="phrase-view">
+          <p class="bubble-text" id="phrase-text">Need a little push?</p>
+          <div class="bubble-footer">
+            <span class="tone-pill" id="phrase-tone">warm</span>
+            <div class="bubble-actions">
+              <button type="button" class="bubble-account" id="account-button">
+                connect
+              </button>
+              <button type="button" class="bubble-refresh" id="refresh-phrase">
+                another one
+              </button>
+            </div>
+          </div>
         </div>
+
+        <form class="auth-view hidden" id="auth-form">
+          <p class="auth-title" id="auth-title">connect account</p>
+          <p class="auth-status" id="auth-status">same account, same support</p>
+
+          <div class="auth-fields" id="auth-fields">
+            <label class="auth-label" for="auth-email">email</label>
+            <input
+              class="auth-input"
+              id="auth-email"
+              type="email"
+              autocomplete="email"
+              spellcheck="false"
+            />
+
+            <label class="auth-label" for="auth-password">password</label>
+            <input
+              class="auth-input"
+              id="auth-password"
+              type="password"
+              autocomplete="current-password"
+            />
+          </div>
+
+          <p class="auth-message" id="auth-message" aria-live="polite"></p>
+
+          <div class="auth-actions">
+            <button type="button" class="auth-secondary" id="auth-back">
+              back
+            </button>
+            <button type="submit" class="auth-primary" id="auth-submit">
+              connect
+            </button>
+            <button type="button" class="auth-primary hidden" id="auth-logout">
+              sign out
+            </button>
+          </div>
+        </form>
       </section>
 
       <div class="pet-wrap" id="pet-wrap">

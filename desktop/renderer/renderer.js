@@ -2,8 +2,29 @@ const bubble = document.getElementById("phrase-bubble");
 const phraseText = document.getElementById("phrase-text");
 const phraseTone = document.getElementById("phrase-tone");
 const petButton = document.getElementById("pet-button");
+const petSprite = document.getElementById("pet-sprite");
 const closeBubbleButton = document.getElementById("close-bubble");
 const refreshPhraseButton = document.getElementById("refresh-phrase");
+
+const SPRITE_FRAMES = 6;
+const FRAME_MS = 110;
+const FRAME_MS_EXCITED = 55;
+let frameIndex = 0;
+let frameTimer = null;
+
+function setFrame(index) {
+  petSprite.src = `../public/llama/sprite_${index}.png`;
+}
+
+function startWalk(ms = FRAME_MS) {
+  if (frameTimer) clearInterval(frameTimer);
+  frameTimer = setInterval(() => {
+    frameIndex = (frameIndex + 1) % SPRITE_FRAMES;
+    setFrame(frameIndex);
+  }, ms);
+}
+
+startWalk();
 
 const AUTO_SHOW_MS = 30000;
 const AUTO_HIDE_MS = 9000;
@@ -59,8 +80,10 @@ async function openBubble() {
   petButton.classList.remove("is-excited");
   void petButton.offsetWidth;
   petButton.classList.add("is-excited");
+  startWalk(FRAME_MS_EXCITED);
   setTimeout(() => {
     petButton.classList.remove("is-excited");
+    startWalk(FRAME_MS);
   }, 750);
 
   phraseText.textContent = "Picking the next little push...";

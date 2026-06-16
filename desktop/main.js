@@ -10,10 +10,10 @@ const {
   screen,
 } = require("electron");
 
-const PET_WIDTH = 220;
-const PET_HEIGHT = 260;
-const DEFAULT_BUBBLE_EXTRA_HEIGHT = 148;
-const MAX_BUBBLE_EXTRA_HEIGHT = 260;
+const PET_WIDTH = 190;
+const PET_HEIGHT = 220;
+const DEFAULT_BUBBLE_EXTRA_HEIGHT = 98;
+const MAX_BUBBLE_EXTRA_HEIGHT = 210;
 const FLOOR_MARGIN = 18;
 const SIDE_MARGIN = 18;
 const WALK_SPEED = 2;

@@ -21,8 +21,8 @@ const authLogoutButton = document.getElementById("auth-logout");
 const SPRITE_FRAMES = 6;
 const FRAME_MS = 110;
 const FRAME_MS_EXCITED = 55;
-const PHRASE_EXTRA_HEIGHT = 148;
-const AUTH_EXTRA_HEIGHT = 238;
+const PHRASE_EXTRA_HEIGHT = 98;
+const AUTH_EXTRA_HEIGHT = 178;
 let frameIndex = 0;
 let frameTimer = null;
 
@@ -122,6 +122,7 @@ function renderAuthState() {
 
   accountButton.textContent = isAuthenticated ? "account" : "connect";
   accountButton.classList.toggle("is-connected", isAuthenticated);
+  refreshPhraseButton.classList.toggle("hidden", !isAuthenticated);
   authTitle.textContent = isAuthenticated ? "connected" : "connect account";
   authStatus.textContent = isAuthenticated
     ? getAuthEmail()

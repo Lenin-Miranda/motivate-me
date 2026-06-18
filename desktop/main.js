@@ -3,15 +3,13 @@ const fs = require("node:fs/promises");
 const {
   app,
   BrowserWindow,
-  Menu,
-  Tray,
   ipcMain,
   safeStorage,
   screen,
 } = require("electron");
 
-const PET_WIDTH = 190;
-const PET_HEIGHT = 220;
+const PET_WIDTH = 140;
+const PET_HEIGHT = 190;
 const DEFAULT_BUBBLE_EXTRA_HEIGHT = 98;
 const MAX_BUBBLE_EXTRA_HEIGHT = 210;
 const FLOOR_MARGIN = 18;
@@ -30,7 +28,6 @@ const state = {
 };
 
 let mainWindow = null;
-let tray = null;
 let movementTimer = null;
 let authState = {
   sessionToken: null,
@@ -85,8 +82,10 @@ function decodeSessionToken(parsedAuthState) {
 }
 
 function notifyAuthStateChanged() {
-  mainWindow?.webContents.send("desktop-pet:auth-changed", getPublicAuthState());
-  tray?.setContextMenu(buildTrayMenu());
+  mainWindow?.webContents.send(
+    "desktop-pet:auth-changed",
+    getPublicAuthState(),
+  );
 }
 
 async function loadAuthState() {
@@ -276,39 +275,8 @@ function isPaused() {
   return state.manualPaused || state.bubblePaused;
 }
 
-function buildTrayMenu() {
-  return Menu.buildFromTemplate([
-    {
-      label: "Show phrase now",
-      click: () => {
-        mainWindow?.webContents.send("desktop-pet:show-phrase");
-      },
-    },
-    {
-      label: authState.user?.email
-        ? `Account: ${authState.user.email}`
-        : "Connect account",
-      click: () => {
-        mainWindow?.webContents.send("desktop-pet:show-auth");
-      },
-    },
-    {
-      label: state.manualPaused ? "Resume walking" : "Pause walking",
-      click: () => {
-        state.manualPaused = !state.manualPaused;
-        syncPauseState();
-      },
-    },
-    {
-      label: "Quit",
-      role: "quit",
-    },
-  ]);
-}
-
 function syncPauseState() {
   mainWindow?.webContents.send("desktop-pet:paused", isPaused());
-  tray?.setContextMenu(buildTrayMenu());
 }
 
 function syncWindowPosition() {
@@ -420,20 +388,6 @@ function createWindow() {
   });
 
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
-}
-
-function createTray() {
-  const trayIcon = path.join(
-    __dirname,
-    "..",
-    "web",
-    "public",
-    "motivate-me_icon_dark.png",
-  );
-
-  tray = new Tray(trayIcon);
-  tray.setToolTip("Motivate Me");
-  tray.setContextMenu(buildTrayMenu());
 }
 
 async function fetchRandomPhrase() {
@@ -582,9 +536,19 @@ ipcMain.on("desktop-pet:set-bubble-open", (_event, isOpen, extraHeight) => {
   if (isOpen) {
     const bubbleExtraHeight = getBubbleExtraHeight(extraHeight);
     const newY = Math.max(workArea.y, state.y - bubbleExtraHeight);
-    mainWindow.setBounds({ x: Math.round(state.x), y: newY, width: PET_WIDTH, height: PET_HEIGHT + bubbleExtraHeight });
+    mainWindow.setBounds({
+      x: Math.round(state.x),
+      y: newY,
+      width: PET_WIDTH,
+      height: PET_HEIGHT + bubbleExtraHeight,
+    });
   } else {
-    mainWindow.setBounds({ x: Math.round(state.x), y: Math.round(state.y), width: PET_WIDTH, height: PET_HEIGHT });
+    mainWindow.setBounds({
+      x: Math.round(state.x),
+      y: Math.round(state.y),
+      width: PET_WIDTH,
+      height: PET_HEIGHT,
+    });
   }
 });
 
@@ -592,23 +556,26 @@ ipcMain.on("desktop-pet:quit", () => {
   app.quit();
 });
 
-app.whenReady().then(() => {
-  return loadAuthState();
-}).then(() => {
-  void validateAuthSession().catch(() => {});
-  createWindow();
-  createTray();
-  startMovement();
+app
+  .whenReady()
+  .then(() => {
+    return loadAuthState();
+  })
+  .then(() => {
+    app.dock?.hide();
+    void validateAuthSession().catch(() => {});
+    createWindow();
+    startMovement();
 
-  screen.on("display-metrics-changed", placeWindowAtStart);
+    screen.on("display-metrics-changed", placeWindowAtStart);
 
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-      startMovement();
-    }
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+        startMovement();
+      }
+    });
   });
-});
 
 app.on("window-all-closed", () => {
   stopMovement();

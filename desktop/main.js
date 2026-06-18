@@ -10,6 +10,7 @@ const {
 
 const PET_WIDTH = 140;
 const PET_HEIGHT = 190;
+const BUBBLE_WIDTH = 184;
 const DEFAULT_BUBBLE_EXTRA_HEIGHT = 98;
 const MAX_BUBBLE_EXTRA_HEIGHT = 210;
 const FLOOR_MARGIN = 18;
@@ -275,6 +276,18 @@ function isPaused() {
   return state.manualPaused || state.bubblePaused;
 }
 
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getBubbleWindowX(workArea) {
+  const desiredX = state.x - (BUBBLE_WIDTH - PET_WIDTH);
+  const minX = workArea.x;
+  const maxX = workArea.x + workArea.width - BUBBLE_WIDTH;
+
+  return clamp(desiredX, minX, maxX);
+}
+
 function syncPauseState() {
   mainWindow?.webContents.send("desktop-pet:paused", isPaused());
 }
@@ -537,9 +550,9 @@ ipcMain.on("desktop-pet:set-bubble-open", (_event, isOpen, extraHeight) => {
     const bubbleExtraHeight = getBubbleExtraHeight(extraHeight);
     const newY = Math.max(workArea.y, state.y - bubbleExtraHeight);
     mainWindow.setBounds({
-      x: Math.round(state.x),
+      x: Math.round(getBubbleWindowX(workArea)),
       y: newY,
-      width: PET_WIDTH,
+      width: BUBBLE_WIDTH,
       height: PET_HEIGHT + bubbleExtraHeight,
     });
   } else {

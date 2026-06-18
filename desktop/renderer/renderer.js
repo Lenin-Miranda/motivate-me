@@ -22,7 +22,7 @@ const SPRITE_FRAMES = 6;
 const FRAME_MS = 110;
 const FRAME_MS_EXCITED = 55;
 const PHRASE_EXTRA_HEIGHT = 98;
-const AUTH_EXTRA_HEIGHT = 178;
+const AUTH_EXTRA_HEIGHT = 132;
 let frameIndex = 0;
 let frameTimer = null;
 
@@ -117,16 +117,40 @@ function setAuthMessage(message, variant = "") {
   authMessage.classList.toggle("is-success", variant === "success");
 }
 
+function getFriendlyAuthError(error) {
+  let message =
+    error instanceof Error ? error.message : String(error ?? "Could not connect");
+
+  message = message
+    .replace(/^Error invoking remote method '[^']+':\s*/, "")
+    .replace(/^Error:\s*/, "")
+    .trim();
+
+  if (/invalid credentials/i.test(message)) {
+    return "Invalid email or password.";
+  }
+
+  if (/email and password/i.test(message)) {
+    return "Enter email and password.";
+  }
+
+  if (/failed to fetch|network|ECONNREFUSED/i.test(message)) {
+    return "Can't reach the app right now.";
+  }
+
+  return message.length > 72 ? `${message.slice(0, 69)}...` : message;
+}
+
 function renderAuthState() {
   const isAuthenticated = Boolean(authState?.isAuthenticated && authState.user);
 
   accountButton.textContent = isAuthenticated ? "account" : "connect";
   accountButton.classList.toggle("is-connected", isAuthenticated);
   refreshPhraseButton.classList.toggle("hidden", !isAuthenticated);
-  authTitle.textContent = isAuthenticated ? "connected" : "connect account";
+  authTitle.textContent = isAuthenticated ? "connected" : "connect";
   authStatus.textContent = isAuthenticated
     ? getAuthEmail()
-    : "same account, same support";
+    : "sync your phrases";
   authFields.classList.toggle("hidden", isAuthenticated);
   authSubmitButton.classList.toggle("hidden", isAuthenticated);
   authLogoutButton.classList.toggle("hidden", !isAuthenticated);
@@ -247,10 +271,7 @@ authForm.addEventListener("submit", async (event) => {
       void openBubble();
     }, 650);
   } catch (error) {
-    setAuthMessage(
-      error instanceof Error ? error.message : "Could not connect",
-      "error",
-    );
+    setAuthMessage(getFriendlyAuthError(error), "error");
   } finally {
     setAuthSubmitting(false);
   }
